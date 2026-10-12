@@ -121,6 +121,25 @@ graph LR
    - MLP : Deux couches linéaires avec expansion $4\times$ ($768 \to 3072 \to 768$) et activation GELU.
    - Connexions résiduelles (`x = x + self.attn(self.norm1(x))`).
 
+### 1.3 Validation Expérimentale & Courbes d'Entraînement
+
+Pour valider l'architecture from-scratch, le modèle `ViT-Tiny` (5.53M paramètres) a été entraîné de bout en bout sur les 50 000 images de **CIFAR-10** (10 époques avec pré-chargement RAM et augmentations vectorisées) :
+
+![Courbes de Convergence ViT sur CIFAR-10](./outputs/train_cifar10_convergence.png)
+
+| Époque | Train Loss | Train Acc (%) | Val Loss | Val Acc (%) |
+| :---: | :---: | :---: | :---: | :---: |
+| **1** | 1.9627 | 30.26% | 1.8546 | 36.01% |
+| **2** | 1.8068 | 38.05% | 1.7379 | 43.04% |
+| **4** | 1.6786 | 44.84% | 1.6435 | 47.24% |
+| **6** | 1.5725 | 50.23% | 1.5411 | 51.89% |
+| **8** | 1.4808 | 54.59% | 1.4710 | 55.16% |
+| **10** | **1.4271** | **57.33%** | **1.4335** | **57.11%** |
+
+> 📁 **Où trouver les artefacts dans le repo ?**
+> - Les graphiques de convergence haute résolution sont versionnés dans [`outputs/train_cifar10_convergence.png`](./outputs/train_cifar10_convergence.png) et [`outputs/train_cifar100_convergence.png`](./outputs/train_cifar100_convergence.png).
+> - Les fichiers de poids volumineux (`outputs/*.pt`) sont délibérément exclus de Git via `.gitignore` pour préserver un dépôt léger, mais sont sauvegardés localement dans le dossier `outputs/`.
+
 ---
 
 ## 🧩 Phase 2A : Auto-Supervision par MAE (Le Puzzle Visuel)

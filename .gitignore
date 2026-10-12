@@ -6,7 +6,8 @@ __pycache__/
 
 # Data & outputs
 data/
-outputs/
+outputs/*
+!outputs/*.png
 checkpoints/
 *.pt
 *.npz
