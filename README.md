@@ -228,12 +228,12 @@ Coche chaque case au fur et à mesure de ta progression !
 
 ### 🟢 Étape 1 : ViT-B/16 en PyTorch
 - [x] **1.1** Créer la classe `PatchEmbedding` avec `nn.Conv2d` et vérifier la taille de sortie `(B, 196, 768)`.
-- [ ] **1.2** Implémenter l'ajout du `[CLS]` token et du `pos_embed` apprenable.
-- [ ] **1.3** Coder la couche `MultiHeadSelfAttention` avec projection $Q, K, V$ et softmax d'attention.
-- [ ] **1.4** Coder le bloc `MLP` avec deux couches linéaires et activation GELU.
-- [ ] **1.5** Assembler le `TransformerEncoderBlock` avec connexions résiduelles et Pre-LayerNorm.
-- [ ] **1.6** Empiler 12 blocs pour former le modèle `VisionTransformerB16`.
-- [ ] **1.7** Écrire un test unitaire qui passe un tenseur aléatoire `torch.randn(2, 3, 224, 224)` et vérifie la dimension de sortie.
+- [x] **1.2** Implémenter l'ajout du `[CLS]` token et du `pos_embed` apprenable.
+- [x] **1.3** Coder la couche `MultiHeadSelfAttention` avec projection $Q, K, V$ et softmax d'attention.
+- [x] **1.4** Coder le bloc `MLP` avec deux couches linéaires et activation GELU.
+- [x] **1.5** Assembler le `TransformerEncoderBlock` avec connexions résiduelles et Pre-LayerNorm.
+- [x] **1.6** Empiler 12 blocs pour former le modèle `VisionTransformerB16`.
+- [x] **1.7** Écrire un test unitaire qui passe un tenseur aléatoire `torch.randn(2, 3, 224, 224)` et vérifie la dimension de sortie.
 - [ ] **1.8** Entraîner sur 5 époques de CIFAR-100 en classification supervisée pour voir le modèle converger.
 
 ### 🟡 Étape 2A : Auto-Supervision MAE (Masked Autoencoder)

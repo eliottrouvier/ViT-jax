@@ -83,8 +83,8 @@ class PatchEmbedding(nn.Module):
         assert C == self.in_channels, (
             f"Nombre de canaux incorrect : reçu {C}, attendu {self.in_channels}"
         )
-        assert H == self.img_size[0] and W == self.img_size[1], (
-            f"Résolution d'image incorrecte : reçue ({H}, {W}), attendue {self.img_size}"
+        assert H % self.patch_size[0] == 0 and W % self.patch_size[1] == 0, (
+            f"Image ({H}, {W}) non divisible par la taille du patch ({self.patch_size})"
         )
 
         # 1. Convolution 2D : (B, 3, 224, 224) -> (B, 768, 14, 14)
