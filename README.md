@@ -261,6 +261,9 @@ ViT-jax/
 ├── notes/                    # Fiches théoriques & Démonstrations pas-à-pas
 │   └── 01_patch_embedding_et_positional_encoding.md
 │
+├── papers/                   # Papiers de recherche fondateurs (PDFs)
+│   └── vit_dosovitskiy_2021.pdf
+│
 ├── pytorch/                  # Partie 1 & 2 : Implémentations PyTorch
 │   ├── models/
 │   │   ├── __init__.py
