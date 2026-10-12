@@ -227,7 +227,7 @@ pip install jax jaxlib flax optax
 Coche chaque case au fur et à mesure de ta progression !
 
 ### 🟢 Étape 1 : ViT-B/16 en PyTorch
-- [ ] **1.1** Créer la classe `PatchEmbedding` avec `nn.Conv2d` et vérifier la taille de sortie `(B, 196, 768)`.
+- [x] **1.1** Créer la classe `PatchEmbedding` avec `nn.Conv2d` et vérifier la taille de sortie `(B, 196, 768)`.
 - [ ] **1.2** Implémenter l'ajout du `[CLS]` token et du `pos_embed` apprenable.
 - [ ] **1.3** Coder la couche `MultiHeadSelfAttention` avec projection $Q, K, V$ et softmax d'attention.
 - [ ] **1.4** Coder le bloc `MLP` avec deux couches linéaires et activation GELU.
