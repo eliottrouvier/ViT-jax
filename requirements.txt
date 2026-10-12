@@ -1,0 +1,19 @@
+# Core Deep Learning
+torch>=2.0.0
+torchvision>=0.15.0
+einops>=0.7.0
+timm>=0.9.0
+
+# JAX & Flax
+jax>=0.4.20
+flax>=0.8.0
+optax>=0.1.7
+
+# Data & Visualization
+numpy>=1.24.0
+matplotlib>=3.7.0
+tqdm>=4.65.0
+wandb>=0.16.0
+
+# Testing & Quality
+pytest>=7.0.0

@@ -1,0 +1,22 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Data & outputs
+data/
+outputs/
+checkpoints/
+*.pt
+*.npz
+*.ckpt
+
+# Environment
+.venv/
+env/
+venv/
+.DS_Store
+
+# Weights & Biases
+wandb/
