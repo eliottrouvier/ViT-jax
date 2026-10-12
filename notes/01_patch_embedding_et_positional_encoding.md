@@ -3,7 +3,7 @@
 > **Module d'apprentissage ViT-JAX**  
 > *Auteur : Eliott Rouvier*  
 > *Référence : Dosovitskiy et al., "An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale" (ICLR 2021)*  
-> 📄 **Papier Original (PDF) :** [`papers/vit_dosovitskiy_2021.pdf`](../papers/vit_dosovitskiy_2021.pdf) · [arXiv:2010.11929](https://arxiv.org/abs/2010.11929)
+> 📄 **Papier Original (PDF) :** [`papiers/vit.pdf`](../papiers/vit.pdf) · [arXiv:2010.11929](https://arxiv.org/abs/2010.11929)
 
 ---
 

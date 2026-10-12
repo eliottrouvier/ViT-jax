@@ -8,6 +8,7 @@
 
 - [📖 Le Dico Simple (Démystifier le Jargon)](#-le-dico-simple-démystifier-le-jargon)
 - [📚 Fiches Théoriques & Notes Pas-à-Pas](#-fiches-théoriques--notes-pas-à-pas)
+- [📄 Bibliothèque des Papiers Fondateurs (PDFs)](#-bibliothèque-des-papiers-fondateurs-pdfs)
 - [🗺️ Vue d'Ensemble & Feuille de Route](#️-vue-densemble--feuille-de-route)
 - [🧱 Phase 1 : ViT-B/16 from Scratch en PyTorch](#-phase-1--vit-b16-from-scratch-en-pytorch)
 - [🧩 Phase 2A : Auto-Supervision par MAE (Le Puzzle Visuel)](#-phase-2a--auto-supervision-par-mae-le-puzzle-visuel)
@@ -44,6 +45,21 @@ Ces fiches détaillent les calculs matriciels, la disposition mémoire et les su
 
 - 📖 [**Fiche 01 : Patch Embedding, Positional Encoding & Rééchantillonnage 2D (Bicubique)**](./notes/01_patch_embedding_et_positional_encoding.md)
   *Du découpage en patchs $16 \times 16$ à l'arithmétique exacte des paramètres, la gestion de la mémoire Row-Major (`flatten(2).transpose(1, 2)`), le rôle du `[CLS]` token (197 tokens), et la technique d'interpolation bicubique pour résolutions dynamiques.*
+
+---
+
+## 📄 Bibliothèque des Papiers Fondateurs (PDFs)
+
+Tous les articles de recherche fondateurs sont archivés en PDF dans le dossier [`papiers/`](./papiers/) :
+
+| Article | Auteurs & Année | Rôle dans ViT-JAX | Lien PDF |
+| :--- | :--- | :--- | :--- |
+| **Attention Is All You Need** | Vaswani et al. *(2017)* | Architecture Transformer d'origine & Self-Attention | [📄 `papiers/attention.pdf`](./papiers/attention.pdf) |
+| **Vision Transformer (ViT)** | Dosovitskiy et al. *(2020)* | Découpage en patchs $16\times16$ et application à la vision | [📄 `papiers/vit.pdf`](./papiers/vit.pdf) |
+| **DeiT** | Touvron et al. *(2020)* | Entraînement efficace sans données massives (Distillation) | [📄 `papiers/deit.pdf`](./papiers/deit.pdf) |
+| **DINO** | Caron et al. *(2021)* | Auto-supervision sans étiquette (Student / Teacher EMA) | [📄 `papiers/dino.pdf`](./papiers/dino.pdf) |
+| **MAE** | Kaiming He et al. *(2021)* | Auto-supervision par reconstruction de puzzle (75% masqué) | [📄 `papiers/mae.pdf`](./papiers/mae.pdf) |
+| **DINOv2** | Oquab et al. *(2023)* | Extension à grande échelle & représentations universelles | [📄 `papiers/dinov2.pdf`](./papiers/dinov2.pdf) |
 
 ---
 
@@ -109,7 +125,7 @@ graph LR
 
 ## 🧩 Phase 2A : Auto-Supervision par MAE (Le Puzzle Visuel)
 
-*Référence : Kaiming He et al., "Masked Autoencoders Are Scalable Vision Learners" (CVPR 2022)*
+*Référence : Kaiming He et al., "Masked Autoencoders Are Scalable Vision Learners" (CVPR 2022)* · [📄 PDF dans le repo](./papiers/mae.pdf) · [arXiv:2111.06377](https://arxiv.org/abs/2111.06377)
 
 ```mermaid
 flowchart LR
@@ -131,7 +147,7 @@ flowchart LR
 
 ## 🧑‍🏫 Phase 2B : Auto-Supervision par DINO (Professeur & Élève)
 
-*Référence : Mathilde Caron et al., "Emerging Properties in Self-Supervised Vision Transformers" (ICCV 2021)*
+*Référence : Mathilde Caron et al., "Emerging Properties in Self-Supervised Vision Transformers" (ICCV 2021)* · [📄 PDF dans le repo](./papiers/dino.pdf) · [arXiv:2104.14294](https://arxiv.org/abs/2104.14294)
 
 ```mermaid
 flowchart TD
@@ -261,8 +277,14 @@ ViT-jax/
 ├── notes/                    # Fiches théoriques & Démonstrations pas-à-pas
 │   └── 01_patch_embedding_et_positional_encoding.md
 │
-├── papers/                   # Papiers de recherche fondateurs (PDFs)
-│   └── vit_dosovitskiy_2021.pdf
+├── papiers/                  # Bibliothèque des 6 publications fondatrices (PDFs)
+│   ├── attention.pdf         # Vaswani et al. (NeurIPS 2017)
+│   ├── vit.pdf               # Dosovitskiy et al. (ICLR 2021)
+│   ├── deit.pdf              # Touvron et al. (ICML 2021)
+│   ├── dino.pdf              # Caron et al. (ICCV 2021)
+│   ├── mae.pdf               # He et al. (CVPR 2022)
+│   ├── dinov2.pdf            # Oquab et al. (2023)
+│   └── README.md             # Index détaillé des publications
 │
 ├── pytorch/                  # Partie 1 & 2 : Implémentations PyTorch
 │   ├── models/
