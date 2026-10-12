@@ -234,7 +234,7 @@ Coche chaque case au fur et à mesure de ta progression !
 - [x] **1.5** Assembler le `TransformerEncoderBlock` avec connexions résiduelles et Pre-LayerNorm.
 - [x] **1.6** Empiler 12 blocs pour former le modèle `VisionTransformerB16`.
 - [x] **1.7** Écrire un test unitaire qui passe un tenseur aléatoire `torch.randn(2, 3, 224, 224)` et vérifie la dimension de sortie.
-- [ ] **1.8** Entraîner sur 5 époques de CIFAR-100 en classification supervisée pour voir le modèle converger.
+- [x] **1.8** Entraîner sur 5 époques de CIFAR-100 en classification supervisée pour voir le modèle converger.
 
 ### 🟡 Étape 2A : Auto-Supervision MAE (Masked Autoencoder)
 - [ ] **2.1** Implémenter la fonction de masquage aléatoire : garder seulement 25% des patches non masqués.

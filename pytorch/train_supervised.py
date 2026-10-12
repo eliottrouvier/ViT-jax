@@ -56,12 +56,17 @@ def get_data_loaders(img_size: int = 224, batch_size: int = 32, num_workers: int
     ])
 
     print("Téléchargement / Chargement de CIFAR-100...")
-    train_dataset = datasets.CIFAR100(
-        root=DATA_DIR, train=True, download=True, transform=train_transform
-    )
-    test_dataset = datasets.CIFAR100(
-        root=DATA_DIR, train=False, download=True, transform=test_transform
-    )
+    cifar100_folder = DATA_DIR / "cifar100"
+    if (cifar100_folder / "train").exists():
+        train_dataset = datasets.ImageFolder(cifar100_folder / "train", transform=train_transform)
+        test_dataset = datasets.ImageFolder(cifar100_folder / "test", transform=test_transform)
+    else:
+        train_dataset = datasets.CIFAR100(
+            root=DATA_DIR, train=True, download=True, transform=train_transform
+        )
+        test_dataset = datasets.CIFAR100(
+            root=DATA_DIR, train=False, download=True, transform=test_transform
+        )
 
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers
