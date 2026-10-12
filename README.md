@@ -7,6 +7,7 @@
 ## 🧭 Sommaire
 
 - [📖 Le Dico Simple (Démystifier le Jargon)](#-le-dico-simple-démystifier-le-jargon)
+- [📚 Fiches Théoriques & Notes Pas-à-Pas](#-fiches-théoriques--notes-pas-à-pas)
 - [🗺️ Vue d'Ensemble & Feuille de Route](#️-vue-densemble--feuille-de-route)
 - [🧱 Phase 1 : ViT-B/16 from Scratch en PyTorch](#-phase-1--vit-b16-from-scratch-en-pytorch)
 - [🧩 Phase 2A : Auto-Supervision par MAE (Le Puzzle Visuel)](#-phase-2a--auto-supervision-par-mae-le-puzzle-visuel)
@@ -34,6 +35,15 @@ Avant de taper une seule ligne de code, voici la traduction en français clair d
 | **DINO (Self-Distillation)** | Méthode d'auto-supervision où deux versions du modèle (un prof et un élève) regardent différents zooms d'une photo et doivent être d'accord sur le sens global. | Deux détectives qui regardent des indices différents mais doivent tomber sur la même conclusion. |
 | **JAX** | Une bibliothèque créée par Google qui permet d'exécuter du code Python ultra-rapide sur GPU/TPU grâce à la compilation automatique (`XLA`). | C'est comme du NumPy, mais qui roule en Formule 1 et calcule les dérivées tout seul. |
 | **Flax** | La surcouche de réseaux de neurones pour JAX (l'équivalent de `torch.nn` pour PyTorch). | La boîte à outils pour empiler des couches de neurones dans le monde JAX. |
+
+---
+
+## 📚 Fiches Théoriques & Notes Pas-à-Pas
+
+Ces fiches détaillent les calculs matriciels, la disposition mémoire et les subtilités mathématiques abordées au fil du projet :
+
+- 📖 [**Fiche 01 : Patch Embedding, Positional Encoding & Rééchantillonnage 2D (Bicubique)**](./notes/01_patch_embedding_et_positional_encoding.md)
+  *Du découpage en patchs $16 \times 16$ à l'arithmétique exacte des paramètres, la gestion de la mémoire Row-Major (`flatten(2).transpose(1, 2)`), le rôle du `[CLS]` token (197 tokens), et la technique d'interpolation bicubique pour résolutions dynamiques.*
 
 ---
 
@@ -247,6 +257,9 @@ Voici l'organisation recommandée pour ranger ton code proprement :
 ViT-jax/
 ├── README.md                 # Ce guide maître avec la checklist
 ├── requirements.txt          # Dépendances Python (torch, jax, flax, etc.)
+│
+├── notes/                    # Fiches théoriques & Démonstrations pas-à-pas
+│   └── 01_patch_embedding_et_positional_encoding.md
 │
 ├── pytorch/                  # Partie 1 & 2 : Implémentations PyTorch
 │   ├── models/
