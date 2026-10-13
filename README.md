@@ -45,6 +45,8 @@ Ces fiches détaillent les calculs matriciels, la disposition mémoire et les su
 
 - 📖 [**Fiche 01 : Patch Embedding, Positional Encoding & Rééchantillonnage 2D (Bicubique)**](./notes/01_patch_embedding_et_positional_encoding.md)
   *Du découpage en patchs $16 \times 16$ à l'arithmétique exacte des paramètres, la gestion de la mémoire Row-Major (`flatten(2).transpose(1, 2)`), le rôle du `[CLS]` token (197 tokens), et la technique d'interpolation bicubique pour résolutions dynamiques.*
+- 📖 [**Fiche 02 : Auto-Supervision par MAE (Masked Autoencoders)**](./notes/02_auto_supervision_mae.md)
+  *L'asymétrie radicale de calcul ($\times 16$ sur l'attention), l'algorithme de masquage 75% par double argsort, la réinsertion des tokens [MASK] et la perte MSE masquée avec normalisation des patchs.*
 
 ---
 
@@ -162,6 +164,19 @@ flowchart LR
 1. **Une image a trop de redondance :** Dans le texte (BERT), on ne masque que 15% des mots car les mots ont une forte densité sémantique. Dans une image, si vous masquez seulement 15%, le modèle triche en copiant les pixels voisins. En masquant **75%**, il est forcé de comprendre ce qu'est un œil, une roue ou une aile pour la reconstituer !
 2. **L'Asymétrie Encodeur / Décodeur :** L'encodeur (qui est le gros modèle ViT-B) ne traite que les **25% de patches visibles** (49 patches au lieu de 196). Le calcul de l'attention dépend du carré du nombre de patches : $49^2 \approx 2401$ contre $196^2 \approx 38416$. L'entraînement est donc **$4\times$ plus rapide et consomme $4\times$ moins de mémoire** !
 
+### 🎨 Résultats Visuels : Planche Comparative de Reconstruction (75% Masqué)
+
+Le script [`pytorch/visualize_mae.py`](./pytorch/visualize_mae.py) génère la planche comparative démontrant la capacité du modèle à reconstituer l'information masquée :
+
+![Démonstration Visuelle de Reconstruction MAE](./outputs/mae_reconstruction.png)
+
+![Courbe de Convergence MAE](./outputs/train_mae_convergence.png)
+
+- **Guide théorique complet :** [`notes/02_auto_supervision_mae.md`](./notes/02_auto_supervision_mae.md)
+- **Modèle PyTorch :** [`pytorch/self_supervised/mae.py`](./pytorch/self_supervised/mae.py)
+- **Pré-entraînement auto-supervisé :** [`pytorch/train_mae.py`](./pytorch/train_mae.py)
+- **Script de visualisation :** [`pytorch/visualize_mae.py`](./pytorch/visualize_mae.py)
+
 ---
 
 ## 🧑‍🏫 Phase 2B : Auto-Supervision par DINO (Professeur & Élève)
@@ -256,13 +271,13 @@ Coche chaque case au fur et à mesure de ta progression !
 - [x] **1.8** Entraîner sur 5 époques de CIFAR-100 en classification supervisée pour voir le modèle converger.
 
 ### 🟡 Étape 2A : Auto-Supervision MAE (Masked Autoencoder)
-- [ ] **2.1** Implémenter la fonction de masquage aléatoire : garder seulement 25% des patches non masqués.
-- [ ] **2.2** Configurer l'encodeur ViT pour qu'il ne traite que les patches visibles.
-- [ ] **2.3** Coder le décodeur léger (4 blocs Transformer, dimension 512).
-- [ ] **2.4** Insérer les tokens de masque apprenables (`[MASK]`) pour reformer la grille complète de 196 positions.
-- [ ] **2.5** Projeter la sortie du décodeur vers les pixels ($16 \times 16 \times 3 = 768$) avec normalisation des patches.
-- [ ] **2.6** Calculer la perte MSE uniquement sur les patches masqués.
-- [ ] **2.7** Écrire un script `visualize_mae.py` avec Matplotlib pour afficher côte à côte : *Image originale*, *Image masquée* et *Image reconstruite*.
+- [x] **2.1** Implémenter la fonction de masquage aléatoire : garder seulement 25% des patches non masqués.
+- [x] **2.2** Configurer l'encodeur ViT pour qu'il ne traite que les patches visibles.
+- [x] **2.3** Coder le décodeur léger (4 blocs Transformer, dimension 512).
+- [x] **2.4** Insérer les tokens de masque apprenables (`[MASK]`) pour reformer la grille complète de 196 positions.
+- [x] **2.5** Projeter la sortie du décodeur vers les pixels ($16 \times 16 \times 3 = 768$) avec normalisation des patches.
+- [x] **2.6** Calculer la perte MSE uniquement sur les patches masqués.
+- [x] **2.7** Écrire un script `visualize_mae.py` avec Matplotlib pour afficher côte à côte : *Image originale*, *Image masquée* et *Image reconstruite*.
 
 ### 🔵 Étape 2B : Auto-Supervision DINO
 - [ ] **2.8** Créer la pipeline de transformation Multi-Crop (2 vues globales $224\times224$ + 6 vues locales $96\times96$).
