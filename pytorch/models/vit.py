@@ -204,10 +204,10 @@ class VisionTransformer(nn.Module):
 # Fonctions de Création (Factory Functions)
 # =============================================================================
 
-def vit_base_patch16_224(num_classes: int = 1000, **kwargs) -> VisionTransformer:
+def vit_base_patch16_224(img_size: int = 224, num_classes: int = 1000, **kwargs) -> VisionTransformer:
     """Modèle canonique ViT-B/16 (86 millions de paramètres)."""
     return VisionTransformer(
-        img_size=224,
+        img_size=img_size,
         patch_size=16,
         embed_dim=768,
         depth=12,
@@ -219,10 +219,10 @@ def vit_base_patch16_224(num_classes: int = 1000, **kwargs) -> VisionTransformer
     )
 
 
-def vit_tiny_patch16_224(num_classes: int = 1000, **kwargs) -> VisionTransformer:
+def vit_tiny_patch16_224(img_size: int = 224, num_classes: int = 1000, **kwargs) -> VisionTransformer:
     """Variante légère ViT-Tiny (5.7 millions de paramètres) pour itération ultra-rapide."""
     return VisionTransformer(
-        img_size=224,
+        img_size=img_size,
         patch_size=16,
         embed_dim=192,
         depth=12,

@@ -205,6 +205,20 @@ DINO résout ce problème avec deux astuces simples :
 
 **Magie visuelle :** À la fin de l'entraînement DINO, si vous affichez l'attention du `CLS token`, le modèle a appris tout seul à segmenter les objets au pixel près sans jamais avoir vu une seule étiquette !
 
+### 🎨 Résultats Visuels : Cartes d'Attention Émergentes et Segmentation Spontanée
+
+Le script [`pytorch/visualize_attention.py`](./pytorch/visualize_attention.py) extrait les matrices d'attention du `[CLS]` token de la dernière couche du Vision Transformer et les projette sur les images d'origine :
+
+![Cartes d'Attention Émergentes DINO](./outputs/dino_attention_maps.png)
+
+![Courbe de Convergence DINO](./outputs/train_dino_convergence.png)
+
+- **Guide théorique complet :** [`notes/03_auto_supervision_dino.md`](./notes/03_auto_supervision_dino.md)
+- **Modèle DINO (Élève, Professeur, Tête & Perte) :** [`pytorch/self_supervised/dino.py`](./pytorch/self_supervised/dino.py)
+- **Pré-entraînement auto-supervisé :** [`pytorch/train_dino.py`](./pytorch/train_dino.py)
+- **Visualisation de l'attention du CLS token :** [`pytorch/visualize_attention.py`](./pytorch/visualize_attention.py)
+- **Tests unitaires DINO :** [`tests/test_dino.py`](./tests/test_dino.py)
+
 ---
 
 ## ⚡ Phase 3 : La Grande Bascule vers JAX & Flax
@@ -219,12 +233,23 @@ DINO résout ce problème avec deux astuces simples :
 | **Compilation** | Eager par défaut (exécution ligne par ligne). | Compilation JIT XLA (`@jax.jit`) qui fusionne les calculs pour une vitesse fulgurante. |
 | **Optimiseur** | `optimizer.step()` modifie les poids en place. | `Optax` : fonction pure `updates, new_opt_state = opt.update(grads, opt_state)`. |
 
-### 🎯 Le Test de Parité Numérique (Le Juge de Paix)
-La meilleure manière d'apprendre JAX sans faire d'erreurs :
-1. Sauvegarder les poids de ton ViT PyTorch (`model.state_dict()`).
-2. Écrire le script de conversion qui charge ces poids dans un dictionnaire Flax.
-3. Passer la même image dans le modèle PyTorch et le modèle Flax.
-4. **Tester :** `np.testing.assert_allclose(torch_output, jax_output, atol=1e-5)`. Si ça passe, ton code JAX est 100% mathématiquement identique !
+### 🎯 Le Test de Parité Numérique (Le Juge de Paix à $10^{-5}$)
+Pour certifier la fidélité mathématique absolue de l'implémentation Flax par rapport au modèle PyTorch :
+1. Le convertisseur [`jax_flax/weights_converter.py`](./jax_flax/weights_converter.py) transpose automatiquement les matrices de poids ($W_{\text{flax}} = W_{\text{torch}}^T$, kernels Conv2D $\to$ HWIO).
+2. La suite de tests [`tests/test_jax_parity.py`](./tests/test_jax_parity.py) valide la parité exacte à $10^{-5}$ près pour chaque sous-module (`PatchEmbedding`, `MultiHeadSelfAttention`, `MLPBlock`, `TransformerBlock`) ainsi que pour le modèle complet `VisionTransformerFlax`.
+
+### ⚡ Benchmark Comparatif : PyTorch vs JAX & Flax Linen
+
+Le script [`jax_flax/benchmark.py`](./jax_flax/benchmark.py) évalue et compare rigoureusement la latence et le débit (images/seconde) d'inférence et d'entraînement :
+
+![Benchmark PyTorch vs JAX](./outputs/benchmark_pytorch_vs_jax.png)
+
+- **Guide théorique complet :** [`notes/04_transition_jax_flax.md`](./notes/04_transition_jax_flax.md)
+- **Modèle Vision Transformer en Flax :** [`jax_flax/models/vit.py`](./jax_flax/models/vit.py)
+- **Convertisseur de poids PyTorch $\to$ Flax :** [`jax_flax/weights_converter.py`](./jax_flax/weights_converter.py)
+- **Entraînement fonctionnel compilé `@jax.jit` :** [`jax_flax/train_jax.py`](./jax_flax/train_jax.py)
+- **Benchmark comparatif :** [`jax_flax/benchmark.py`](./jax_flax/benchmark.py)
+- **Tests de parité numérique :** [`tests/test_jax_parity.py`](./tests/test_jax_parity.py)
 
 ---
 
@@ -236,13 +261,11 @@ La meilleure manière d'apprendre JAX sans faire d'erreurs :
   - Sauvegarde automatique de planches d'images dans `outputs/` :
     - Pour MAE : un triptyque `Originale | Masquée (75%) | Reconstituée`.
     - Pour DINO : les cartes de chaleur d'attention superposées à la photo.
-- **Optionnel (si tu veux des courbes web) : `Weights & Biases (WandB)` :**
-  - Ultra-simple à brancher (`wandb.log({"loss": loss})`), idéal pour comparer tes runs.
+    - Pour JAX : benchmark comparatif de débit d'inférence et d'entraînement.
 
 ### 2. Données pour Débuter sans Surchauffer
-Entraîner ViT-B/16 sur tout ImageNet-1K (1,2 million d'images) demande des clusters de serveurs. Pour apprendre et itérer sur ta machine :
-- **CIFAR-100 (32×32) / TinyImageNet (64×64) :** Téléchargement instantané, parfait pour valider que ton code tourne et que les pertes diminuent.
-- **ImageNette (sous-ensemble de 10 classes d'ImageNet en 224×224) :** La vraie résolution de ViT-B/16, mais sur quelques gigaoctets seulement.
+- **CIFAR-10 / CIFAR-100 (32×32) :** Format compressé en mémoire vive pour des itérations instantanées sans goulot d'étranglement disque.
+- **ImageNet-1K / ImageNette (224×224) :** Résolution canonique ViT-B/16 supportée nativement via interpolation dynamique de l'encodage positionnel.
 
 ### 3. Les Librairies Python Essentielles
 
@@ -280,73 +303,90 @@ Coche chaque case au fur et à mesure de ta progression !
 - [x] **2.7** Écrire un script `visualize_mae.py` avec Matplotlib pour afficher côte à côte : *Image originale*, *Image masquée* et *Image reconstruite*.
 
 ### 🔵 Étape 2B : Auto-Supervision DINO
-- [ ] **2.8** Créer la pipeline de transformation Multi-Crop (2 vues globales $224\times224$ + 6 vues locales $96\times96$).
-- [ ] **2.9** Instancier le modèle Élève (Student) et le modèle Professeur (Teacher) avec la même architecture ViT.
-- [ ] **2.10** Coder la mise à jour par moyenne mobile exponentielle (EMA) des poids du Teacher : $\theta_t \leftarrow \lambda \theta_t + (1 - \lambda) \theta_s$.
-- [ ] **2.11** Implémenter la tête de projection DINO (MLP 3 couches + normalisation $L_2$).
-- [ ] **2.12** Implémenter le Centering et le Sharpening avec température sur les sorties du Teacher.
-- [ ] **2.13** Coder la fonction de perte Cross-Entropy entre Student et Teacher.
-- [ ] **2.14** Écrire un script `visualize_attention.py` pour extraire et tracer les cartes d'attention du `CLS token` sur des images de test.
+- [x] **2.8** Créer la pipeline de transformation Multi-Crop (2 vues globales + 4 vues locales).
+- [x] **2.9** Instancier le modèle Élève (Student) et le modèle Professeur (Teacher) avec la même architecture ViT.
+- [x] **2.10** Coder la mise à jour par moyenne mobile exponentielle (EMA) des poids du Teacher : $\theta_t \leftarrow \lambda \theta_t + (1 - \lambda) \theta_s$.
+- [x] **2.11** Implémenter la tête de projection DINO (MLP 3 couches + normalisation $L_2$ + prototypes).
+- [x] **2.12** Implémenter le Centering et le Sharpening avec température sur les sorties du Teacher.
+- [x] **2.13** Coder la fonction de perte Cross-Entropy entre Student et Teacher.
+- [x] **2.14** Écrire un script `visualize_attention.py` pour extraire et tracer les cartes d'attention du `CLS token` sur des images de test.
 
 ### 🟣 Étape 3 : La Bascule vers JAX / Flax
-- [ ] **3.1** Installer JAX et Flax sur ton environnement.
-- [ ] **3.2** Écrire un premier bloc d'attention simple avec `flax.linen.Module`.
-- [ ] **3.3** Réécrire `VisionTransformer` complet en Flax.
-- [ ] **3.4** Écrire le script de conversion de poids (`weights_converter.py`) pour copier les tenseurs PyTorch dans l'arbre de paramètres Flax.
-- [ ] **3.5** Exécuter le test de parité numérique : vérifier que `torch_out` et `flax_out` sont identiques à $10^{-5}$ près !
-- [ ] **3.6** Coder la boucle d'entraînement fonctionnelle avec `@jax.jit` et l'optimiseur `optax.adamw`.
-- [ ] **3.7** Mesurer le gain de vitesse et l'utilisation de la mémoire entre PyTorch et JAX compilé.
+- [x] **3.1** Installer JAX et Flax sur ton environnement.
+- [x] **3.2** Écrire un premier bloc d'attention simple avec `flax.linen.Module`.
+- [x] **3.3** Réécrire `VisionTransformer` complet en Flax.
+- [x] **3.4** Écrire le script de conversion de poids (`weights_converter.py`) pour copier les tenseurs PyTorch dans l'arbre de paramètres Flax.
+- [x] **3.5** Exécuter le test de parité numérique : vérifier que `torch_out` et `flax_out` sont identiques à $10^{-5}$ près !
+- [x] **3.6** Coder la boucle d'entraînement fonctionnelle avec `@jax.jit` et l'optimiseur `optax.adamw`.
+- [x] **3.7** Mesurer le gain de vitesse et l'utilisation de la mémoire entre PyTorch et JAX compilé.
 
 ---
 
-## 📂 Structure Suggérée du Dépôt
-
-Voici l'organisation recommandée pour ranger ton code proprement :
+## 📂 Structure du Dépôt
 
 ```text
 ViT-jax/
-├── README.md                 # Ce guide maître avec la checklist
-├── requirements.txt          # Dépendances Python (torch, jax, flax, etc.)
+├── README.md                          # Guide maître complet avec benchmarks et checklist 100% validée
+├── requirements.txt                   # Dépendances (PyTorch, JAX, Flax, Optax, Torchvision, etc.)
 │
-├── notes/                    # Fiches théoriques & Démonstrations pas-à-pas
-│   └── 01_patch_embedding_et_positional_encoding.md
+├── notes/                             # Fiches théoriques & Démonstrations mathématiques
+│   ├── 01_patch_embedding_et_positional_encoding.md
+│   ├── 02_auto_supervision_mae.md
+│   ├── 03_auto_supervision_dino.md
+│   └── 04_transition_jax_flax.md
 │
-├── papiers/                  # Bibliothèque des 6 publications fondatrices (PDFs)
-│   ├── attention.pdf         # Vaswani et al. (NeurIPS 2017)
-│   ├── vit.pdf               # Dosovitskiy et al. (ICLR 2021)
-│   ├── deit.pdf              # Touvron et al. (ICML 2021)
-│   ├── dino.pdf              # Caron et al. (ICCV 2021)
-│   ├── mae.pdf               # He et al. (CVPR 2022)
-│   ├── dinov2.pdf            # Oquab et al. (2023)
-│   └── README.md             # Index détaillé des publications
+├── papiers/                           # Bibliothèque des 6 publications fondatrices (PDFs)
+│   ├── attention.pdf                  # Vaswani et al. (NeurIPS 2017)
+│   ├── vit.pdf                        # Dosovitskiy et al. (ICLR 2021)
+│   ├── deit.pdf                       # Touvron et al. (ICML 2021)
+│   ├── dino.pdf                       # Caron et al. (ICCV 2021)
+│   ├── mae.pdf                        # He et al. (CVPR 2022)
+│   ├── dinov2.pdf                     # Oquab et al. (2023)
+│   └── README.md                      # Index détaillé des publications
 │
-├── pytorch/                  # Partie 1 & 2 : Implémentations PyTorch
+├── pytorch/                           # Phase 1 & 2 : Implémentations PyTorch
 │   ├── models/
-│   │   ├── __init__.py
-│   │   ├── patch_embed.py    # Découpage et projection des patches
-│   │   ├── attention.py      # Multi-Head Self-Attention
-│   │   └── vit.py            # Assemblage complet du ViT-B/16
-│   ├── ssl/
-│   │   ├── mae.py            # Modèle et masquage MAE
-│   │   └── dino.py           # Student/Teacher et pertes DINO
-│   ├── train_supervised.py   # Entraînement classique (classification)
-│   ├── train_mae.py          # Boucle de pré-entraînement MAE
-│   └── train_dino.py         # Boucle de pré-entraînement DINO
+│   │   ├── patch_embed.py             # Découpage et projection des patchs
+│   │   ├── attention.py               # Multi-Head Self-Attention
+│   │   ├── mlp.py                     # MLP Block avec GELU
+│   │   ├── block.py                   # TransformerBlock avec Pre-LayerNorm
+│   │   └── vit.py                     # VisionTransformer complet & dynamique
+│   ├── self_supervised/
+│   │   ├── mae.py                     # Masquage 75% et Autoencodeur Masqué
+│   │   └── dino.py                    # Multi-Crop, Tête DINO, Centering & EMA
+│   ├── train_supervised.py            # Entraînement supervisé CIFAR-10 / CIFAR-100
+│   ├── train_mae.py                   # Pré-entraînement auto-supervisé MAE
+│   ├── train_dino.py                  # Pré-entraînement auto-supervisé DINO
+│   ├── visualize_mae.py               # Triptyque Original / Masqué / Reconstruit
+│   └── visualize_attention.py         # Visualisation des têtes d'attention du CLS token
 │
-├── jax/                      # Partie 3 : Port vers JAX / Flax
+├── jax_flax/                          # Phase 3 : Implémentation fonctionnelle JAX & Flax Linen
 │   ├── models/
-│   │   ├── __init__.py
-│   │   └── vit_flax.py       # ViT-B/16 en Flax Linen
-│   ├── convert_weights.py    # Pont PyTorch -> Flax PyTree
-│   └── train_flax.py         # Entraînement fonctionnel accéléré JIT
+│   │   ├── patch_embed.py             # PatchEmbeddingFlax (Conv2d)
+│   │   ├── attention.py               # MultiHeadSelfAttentionFlax
+│   │   ├── mlp.py                     # MLPFlax
+│   │   ├── block.py                   # TransformerBlockFlax
+│   │   └── vit.py                     # VisionTransformerFlax complet
+│   ├── weights_converter.py           # Convertisseur exact de poids PyTorch -> Flax PyTree
+│   ├── train_jax.py                   # Boucle d'entraînement compilée @jax.jit avec Optax
+│   └── benchmark.py                   # Mesure du débit et latence PyTorch vs JAX/Flax
 │
-├── utils/
-│   ├── datasets.py           # Téléchargement et chargement des données
-│   └── visualization.py      # Tracés Matplotlib (MAE puzzle & DINO attention)
+├── tests/                             # 22 Tests unitaires (100% de réussite)
+│   ├── test_vit.py                    # 6 tests PyTorch ViT
+│   ├── test_mae.py                    # 5 tests MAE
+│   ├── test_dino.py                   # 6 tests DINO
+│   └── test_jax_parity.py             # 5 tests de parité numérique à 1e-5
 │
-└── outputs/                  # Images et courbes générées automatiquement
+└── outputs/                           # Artefacts et graphiques haute résolution
+    ├── train_cifar10_convergence.png  # Courbes d'entraînement supervisé
+    ├── train_mae_convergence.png      # Décroissance de la perte MAE
+    ├── mae_reconstruction.png         # Planche de reconstruction d'images
+    ├── train_dino_convergence.png     # Décroissance de la perte DINO
+    ├── dino_attention_maps.png        # Cartes d'attention émergentes DINO
+    └── benchmark_pytorch_vs_jax.png   # Benchmark comparatif de débit
 ```
 
 ---
 
-*Projet initié par Eliott Rouvier — Exploration de l'état de l'art en Vision Transformers et Auto-supervision.*
+*Projet initié par Eliott Rouvier — Exploration et implémentation de l'état de l'art en Vision Transformers, Auto-supervision (MAE & DINO) et accélération JAX/Flax.*
+

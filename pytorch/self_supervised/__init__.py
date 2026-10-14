@@ -5,6 +5,15 @@ from pytorch.self_supervised.mae import (
     patchify,
     unpatchify,
 )
+from pytorch.self_supervised.dino import (
+    DataAugmentationDINO,
+    DINOHead,
+    DINOLoss,
+    DINOModel,
+    update_teacher_ema,
+    dino_vit_tiny,
+    dino_vit_base,
+)
 
 __all__ = [
     "MaskedAutoencoderViT",
@@ -12,4 +21,11 @@ __all__ = [
     "mae_vit_tiny_patch16_224",
     "patchify",
     "unpatchify",
+    "DataAugmentationDINO",
+    "DINOHead",
+    "DINOLoss",
+    "DINOModel",
+    "update_teacher_ema",
+    "dino_vit_tiny",
+    "dino_vit_base",
 ]
