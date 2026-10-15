@@ -73,9 +73,10 @@ def dino_collate_fn(batch):
 
 
 def get_data_loader(
-    batch_size: int = 64,
-    global_size: int = 64,
-    local_size: int = 32,
+    dataset: str = "stl10",
+    batch_size: int = 128,
+    global_size: int = 96,
+    local_size: int = 48,
     local_crops_number: int = 4,
 ) -> DataLoader:
     """Prépare le DataLoader Multi-Crop."""
@@ -87,30 +88,46 @@ def get_data_loader(
         local_size=local_size,
     )
 
-    packed_file = DATA_DIR / "cifar10_packed.pt"
-    if packed_file.exists():
+    stl10_packed = DATA_DIR / "stl10_packed.pt"
+    cifar10_packed = DATA_DIR / "cifar10_packed.pt"
+
+    if dataset.lower() == "stl10" and stl10_packed.exists():
+        print(f"Chargement immédiat de STL-10 depuis {stl10_packed}...")
+        data = torch.load(stl10_packed, weights_only=True)
+        dataset_obj = FastRAMDINODataset(data["train_imgs"], transform=transform)
+    elif cifar10_packed.exists():
         print("Chargement immédiat des images depuis data/cifar10_packed.pt...")
-        data = torch.load(packed_file, weights_only=True)
-        dataset = FastRAMDINODataset(data["train_imgs"], transform=transform)
+        data = torch.load(cifar10_packed, weights_only=True)
+        dataset_obj = FastRAMDINODataset(data["train_imgs"], transform=transform)
     else:
-        print("Chargement depuis data/cifar10/train...")
-        folder = DATA_DIR / "cifar10" / "train"
+        print("Chargement depuis torchvision...")
         to_tensor = transforms.ToTensor()
-        raw_ds = datasets.ImageFolder(folder)
-
-        class DiskDINODataset(Dataset):
-            def __init__(self, ds, t):
-                self.ds = ds
-                self.t = t
-            def __len__(self): return len(self.ds)
-            def __getitem__(self, i):
-                img_pil, _ = self.ds[i]
-                return self.t(to_tensor(img_pil))
-
-        dataset = DiskDINODataset(raw_ds, transform)
+        if dataset.lower() == "stl10":
+            raw_ds = datasets.STL10(root=str(DATA_DIR), split="unlabeled", download=True)
+            class STL10DINODataset(Dataset):
+                def __init__(self, ds, t):
+                    self.ds = ds
+                    self.t = t
+                def __len__(self): return len(self.ds)
+                def __getitem__(self, i):
+                    img_pil, _ = self.ds[i]
+                    return self.t(to_tensor(img_pil))
+            dataset_obj = STL10DINODataset(raw_ds, transform)
+        else:
+            folder = DATA_DIR / "cifar10" / "train"
+            raw_ds = datasets.ImageFolder(folder)
+            class DiskDINODataset(Dataset):
+                def __init__(self, ds, t):
+                    self.ds = ds
+                    self.t = t
+                def __len__(self): return len(self.ds)
+                def __getitem__(self, i):
+                    img_pil, _ = self.ds[i]
+                    return self.t(to_tensor(img_pil))
+            dataset_obj = DiskDINODataset(raw_ds, transform)
 
     loader = DataLoader(
-        dataset,
+        dataset_obj,
         batch_size=batch_size,
         shuffle=True,
         drop_last=True,
@@ -206,14 +223,17 @@ def plot_loss_curve(losses, out_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Pré-entraînement auto-supervisé DINO")
-    parser.add_argument("--epochs", type=int, default=5, help="Nombre d'époques de pré-entraînement")
+    parser.add_argument("--dataset", type=str, default="stl10", choices=["stl10", "cifar10"],
+                        help="Dataset pour le pré-entraînement")
+    parser.add_argument("--epochs", type=int, default=10, help="Nombre d'époques de pré-entraînement")
     parser.add_argument("--batch-size", type=int, default=64, help="Taille de batch")
     parser.add_argument("--lr", type=float, default=5e-4, help="Learning rate initial")
     parser.add_argument("--weight-decay", type=float, default=0.04, help="Weight decay AdamW")
     parser.add_argument("--out-dim", type=int, default=1024, help="Dimension de l'espace de prototypes")
-    parser.add_argument("--global-size", type=int, default=64, help="Résolution des vues globales (ex: 64 ou 224)")
-    parser.add_argument("--local-size", type=int, default=32, help="Résolution des vues locales (ex: 32 ou 96)")
-    parser.add_argument("--local-crops-number", type=int, default=4, help="Nombre de vues locales")
+    parser.add_argument("--global-size", type=int, default=96, help="Résolution des vues globales (ex: 96 ou 224)")
+    parser.add_argument("--local-size", type=int, default=48, help="Résolution des vues locales (ex: 48 ou 96)")
+    parser.add_argument("--patch-size", type=int, default=8, help="Taille des patchs (ex: 8 ou 16)")
+    parser.add_argument("--local-crops-number", type=int, default=2, help="Nombre de vues locales")
     parser.add_argument("--model", type=str, default="dino_vit_tiny", choices=["dino_vit_tiny", "dino_vit_base"],
                         help="dino_vit_tiny (rapide) ou dino_vit_base (86M)")
     parser.add_argument("--max-batches", type=int, default=None, help="Limite optionnelle de batchs par époque")
@@ -230,7 +250,9 @@ def main():
     print("  ViT-JAX — Phase 2B : Pré-entraînement Auto-Supervisé DINO")
     print("=" * 70)
     print(f"• Périphérique        : {device}")
+    print(f"• Dataset             : {args.dataset.upper()}")
     print(f"• Modèle              : {args.model}")
+    print(f"• Taille des patchs   : {args.patch_size}x{args.patch_size}")
     print(f"• Prototypes (K)      : {args.out_dim}")
     print(f"• Vues globales       : 2 x ({args.global_size}x{args.global_size})")
     print(f"• Vues locales        : {args.local_crops_number} x ({args.local_size}x{args.local_size})")
@@ -239,6 +261,7 @@ def main():
     print(f"• Learning Rate       : {args.lr}")
 
     loader = get_data_loader(
+        dataset=args.dataset,
         batch_size=args.batch_size,
         global_size=args.global_size,
         local_size=args.local_size,
@@ -256,9 +279,9 @@ def main():
 
     # Création du couple Student / Teacher
     if args.model == "dino_vit_base":
-        student, teacher = dino_vit_base(out_dim=args.out_dim, img_size=args.global_size)
+        student, teacher = dino_vit_base(out_dim=args.out_dim, img_size=args.global_size, patch_size=args.patch_size)
     else:
-        student, teacher = dino_vit_tiny(out_dim=args.out_dim, img_size=args.global_size)
+        student, teacher = dino_vit_tiny(out_dim=args.out_dim, img_size=args.global_size, patch_size=args.patch_size)
 
     student = student.to(device)
     teacher = teacher.to(device)

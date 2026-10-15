@@ -32,9 +32,9 @@ OUTPUTS_DIR = BASE_DIR / "outputs"
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def load_dino_model(ckpt_path: Path, img_size: int = 64, device: torch.device = torch.device("cpu")) -> DINOModel:
+def load_dino_model(ckpt_path: Path, img_size: int = 96, patch_size: int = 8, device: torch.device = torch.device("cpu")) -> DINOModel:
     """Charge le modèle DINO (poids Teacher ou Student)."""
-    student, teacher = dino_vit_tiny(out_dim=1024, img_size=img_size)
+    student, teacher = dino_vit_tiny(out_dim=1024, img_size=img_size, patch_size=patch_size)
     if ckpt_path.exists():
         print(f"Chargement du checkpoint : {ckpt_path}")
         state = torch.load(ckpt_path, map_location=device, weights_only=True)
@@ -49,16 +49,22 @@ def load_dino_model(ckpt_path: Path, img_size: int = 64, device: torch.device = 
     return teacher
 
 
-def get_sample_images(num_samples: int = 4, img_size: int = 64) -> torch.Tensor:
-    """Récupère des images d'exemples depuis CIFAR-10."""
-    packed_file = DATA_DIR / "cifar10_packed.pt"
-    if packed_file.exists():
-        data = torch.load(packed_file, weights_only=True)
-        # Sélection de quelques images représentatives du set de test
+def get_sample_images(num_samples: int = 4, img_size: int = 96) -> torch.Tensor:
+    """Récupère des images d'exemples depuis STL-10 ou CIFAR-10."""
+    stl_file = DATA_DIR / "stl10_packed.pt"
+    cifar_file = DATA_DIR / "cifar10_packed.pt"
+
+    if stl_file.exists():
+        data = torch.load(stl_file, weights_only=True)
+        # Sélection de 4 belles images test diversifiées
+        indices = [15, 42, 85, 120][:num_samples]
+        imgs = data["test_imgs"][indices].float() / 255.0
+    elif cifar_file.exists():
+        data = torch.load(cifar_file, weights_only=True)
         indices = [12, 45, 88, 105][:num_samples]
         imgs = data["test_imgs"][indices].float() / 255.0
     else:
-        imgs = torch.rand(num_samples, 3, 32, 32)
+        imgs = torch.rand(num_samples, 3, img_size, img_size)
 
     if imgs.shape[-1] != img_size:
         imgs = F.interpolate(imgs, size=(img_size, img_size), mode="bicubic", align_corners=False)
@@ -138,13 +144,19 @@ def generate_attention_maps(
 
 
 def main():
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    ckpt_path = OUTPUTS_DIR / "dino_vit_tiny.pt"
-    img_size = 64
+    import argparse
+    parser = argparse.ArgumentParser(description="Visualisation des cartes d'attention DINO")
+    parser.add_argument("--img-size", type=int, default=96, help="Résolution de l'image (défaut: 96)")
+    parser.add_argument("--patch-size", type=int, default=8, help="Taille des patchs (défaut: 8)")
+    parser.add_argument("--checkpoint", type=str, default=str(OUTPUTS_DIR / "dino_vit_tiny.pt"), help="Chemin du checkpoint")
+    args = parser.parse_args()
 
-    model = load_dino_model(ckpt_path, img_size=img_size, device=device)
-    images = get_sample_images(num_samples=4, img_size=img_size)
-    generate_attention_maps(model, images, img_size=img_size, patch_size=16)
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    ckpt_path = Path(args.checkpoint)
+
+    model = load_dino_model(ckpt_path, img_size=args.img_size, patch_size=args.patch_size, device=device)
+    images = get_sample_images(num_samples=4, img_size=args.img_size)
+    generate_attention_maps(model, images, img_size=args.img_size, patch_size=args.patch_size)
 
 
 if __name__ == "__main__":

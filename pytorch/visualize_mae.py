@@ -21,8 +21,6 @@ import torch.nn.functional as F
 
 from pytorch.self_supervised import (
     MaskedAutoencoderViT,
-    mae_vit_base_patch16_224,
-    mae_vit_tiny_patch16_224,
     patchify,
     unpatchify,
 )
@@ -33,26 +31,28 @@ OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def load_sample_images(num_samples: int = 4) -> torch.Tensor:
-    """Charge quelques images d'exemple depuis le dataset local."""
-    packed_file = DATA_DIR / "cifar10_packed.pt"
-    if packed_file.exists():
-        data = torch.load(packed_file, weights_only=True)
-        # Prélève les premières images du jeu de test
+    """Charge quelques images d'exemple depuis le dataset local (STL-10 en priorité)."""
+    stl10_file = DATA_DIR / "stl10_packed.pt"
+    cifar_file = DATA_DIR / "cifar10_packed.pt"
+
+    if stl10_file.exists():
+        data = torch.load(stl10_file, weights_only=True)
+        # Sélection d'images représentatives du jeu de test STL-10 (animaux, avions, voitures)
+        indices = [15, 42, 88, 105][:num_samples]
+        imgs = data["test_imgs"][indices].float() / 255.0
+        return imgs
+    elif cifar_file.exists():
+        data = torch.load(cifar_file, weights_only=True)
         imgs = data["test_imgs"][:num_samples].float() / 255.0
         return imgs
 
-    # Fallback : tenseur synthétique contrasté si aucun dataset n'est trouvé
-    print("Dataset non trouvé, génération de formes visuelles synthétiques pour le test...")
-    imgs = torch.zeros(num_samples, 3, 64, 64)
-    for i in range(num_samples):
-        imgs[i, 0, 10:50, 10:50] = 0.8
-        imgs[i, 1, 20:45, 20:45] = 0.6
-        imgs[i, 2, 15:35, 15:35] = 0.9
+    # Fallback
+    imgs = torch.zeros(num_samples, 3, 96, 96)
     return imgs
 
 
 @torch.no_grad()
-def run_mae_inference(model, imgs, mask_ratio=0.75, device="cpu", img_size=64):
+def run_mae_inference(model, imgs, mask_ratio=0.75, device="cpu", img_size=96):
     """Exécute l'inférence MAE et reconstruit les images."""
     model.eval()
     p = model.patch_size
@@ -71,7 +71,7 @@ def run_mae_inference(model, imgs, mask_ratio=0.75, device="cpu", img_size=64):
 
     # 3. Création de l'image masquée (patchs masqués peints en gris foncé)
     patches_masked = patches.clone()
-    patches_masked[mask == 1] = 0.2  # gris foncé pour les 75% masqués
+    patches_masked[mask == 1] = 0.18  # gris foncé pour les 75% masqués
     imgs_masked = unpatchify(patches_masked, patch_size=p, img_size=img_size)
 
     # 4. Dénormalisation des prédictions si norm_pix_loss est activé
@@ -97,9 +97,9 @@ def run_mae_inference(model, imgs, mask_ratio=0.75, device="cpu", img_size=64):
 
 def plot_triptych(imgs, imgs_masked, imgs_recon, out_path, num_samples=4):
     """Génère la planche triptyque : Originale | Masquée (75%) | Reconstituée."""
-    fig, axes = plt.subplots(num_samples, 3, figsize=(10, 3 * num_samples))
+    fig, axes = plt.subplots(num_samples, 3, figsize=(9.5, 3.2 * num_samples))
 
-    titles = ["1. Image Originale", "2. Masquée (75% Caché)", "3. Reconstruction MAE"]
+    titles = ["1. Image Originale (STL-10)", "2. Masquée (75% Caché)", "3. Reconstruction MAE"]
 
     for row in range(num_samples):
         # Conversion PyTorch (C, H, W) -> Matplotlib (H, W, C)
@@ -108,14 +108,12 @@ def plot_triptych(imgs, imgs_masked, imgs_recon, out_path, num_samples=4):
         recon = imgs_recon[row].permute(1, 2, 0).numpy()
 
         for col, (im, title) in enumerate(zip([orig, masked, recon], titles)):
-            ax = axes[row, col] if num_samples > 1 else axes[col]
-            ax.imshow(im)
-            ax.axis("off")
+            axes[row, col].imshow(im)
             if row == 0:
-                ax.set_title(title, fontsize=13, fontweight="bold", pad=10)
+                axes[row, col].set_title(title, fontsize=12, fontweight="bold", pad=10)
+            axes[row, col].axis("off")
 
-    plt.suptitle("Masked Autoencoders (MAE) — Démonstration Visuelle de Reconstruction",
-                 fontsize=15, fontweight="bold", y=0.99)
+    plt.suptitle("Masked Autoencoders (MAE) — Reconstruction Auto-Supervisée", fontsize=14, fontweight="bold", y=0.99)
     plt.tight_layout()
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -124,10 +122,11 @@ def plot_triptych(imgs, imgs_masked, imgs_recon, out_path, num_samples=4):
 
 def main():
     parser = argparse.ArgumentParser(description="Visualisation des reconstructions MAE")
-    parser.add_argument("--checkpoint", type=str, default=None,
+    parser.add_argument("--checkpoint", type=str, default="outputs/mae_vit_tiny.pt",
                         help="Chemin vers le fichier de poids (ex: outputs/mae_vit_tiny.pt)")
     parser.add_argument("--num-samples", type=int, default=4, help="Nombre d'images à afficher")
-    parser.add_argument("--img-size", type=int, default=64, help="Résolution d'image (ex: 64 ou 224)")
+    parser.add_argument("--img-size", type=int, default=96, help="Résolution d'image (96 pour STL-10)")
+    parser.add_argument("--patch-size", type=int, default=8, help="Taille des patchs (8 pour 144 tokens)")
     parser.add_argument("--mask-ratio", type=float, default=0.75, help="Ratio de masquage (0.75)")
     args = parser.parse_args()
 
@@ -135,15 +134,16 @@ def main():
 
     # Instanciation du modèle MAE
     model = MaskedAutoencoderViT(
-        img_size=args.img_size, patch_size=16, embed_dim=192, depth=12, num_heads=3,
+        img_size=args.img_size, patch_size=args.patch_size, embed_dim=192, depth=12, num_heads=3,
         decoder_embed_dim=128, decoder_depth=4, decoder_num_heads=4, norm_pix_loss=True
     )
 
-    if args.checkpoint and Path(args.checkpoint).exists():
-        print(f"Chargement des poids depuis {args.checkpoint}...")
-        model.load_state_dict(torch.load(args.checkpoint, map_location=device, weights_only=True))
+    ckpt_path = Path(args.checkpoint)
+    if ckpt_path.exists():
+        print(f"Chargement des poids depuis {ckpt_path}...")
+        model.load_state_dict(torch.load(ckpt_path, map_location=device, weights_only=True))
     else:
-        print("Aucun checkpoint spécifié ou trouvé, utilisation du modèle initialisé.")
+        print(f"⚠️ Checkpoint {ckpt_path} non trouvé, utilisation des poids initiaux.")
 
     model = model.to(device)
 

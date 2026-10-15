@@ -166,6 +166,11 @@ flowchart LR
 
 ### 🎨 Résultats Visuels : Planche Comparative de Reconstruction (75% Masqué)
 
+Le modèle MAE a été pré-entraîné de zéro sur **STL-10** à résolution native $96 \times 96$ avec des patchs de **$8 \times 8$ pixels** ($12 \times 12 = 144$ tokens spatiaux au total). Avec un masquage à 75%, seuls 36 tokens sont transmis à l'encodeur ViT lourd, et le décodeur reconstitue les 108 tokens manquants à fine granularité :
+
+- **Perte MSE finale :** **`0.6597`** (descente continue depuis `0.8744`).
+- **Fidélité spatiale :** Les formes géométriques complexes (ailes et fuselage d'avion, silhouette d'animaux, végétation et véhicules) sont fidèlement interpolées et reconnectées sans effet de bloc grossier.
+
 Le script [`pytorch/visualize_mae.py`](./pytorch/visualize_mae.py) génère la planche comparative démontrant la capacité du modèle à reconstituer l'information masquée :
 
 ![Démonstration Visuelle de Reconstruction MAE](./outputs/mae_reconstruction.png)
@@ -185,8 +190,8 @@ Le script [`pytorch/visualize_mae.py`](./pytorch/visualize_mae.py) génère la p
 
 ```mermaid
 flowchart TD
-    Img["Image Originale"] --> CropG["2 Vues Globales (grand zoom)"]
-    Img --> CropL["Plusieurs Vues Locales (petits détails)"]
+    Img["Image Originale"] --> CropG["2 Vues Globales (96x96, grand zoom)"]
+    Img --> CropL["2 Vues Locales (48x48, petits détails)"]
     
     CropG --> Teacher["TEACHER (Moyenne Mobile EMA de l'Élève)"]
     CropG & CropL --> Student["STUDENT (Apprend par Descente de Gradient)"]
@@ -206,6 +211,10 @@ DINO résout ce problème avec deux astuces simples :
 **Magie visuelle :** À la fin de l'entraînement DINO, si vous affichez l'attention du `CLS token`, le modèle a appris tout seul à segmenter les objets au pixel près sans jamais avoir vu une seule étiquette !
 
 ### 🎨 Résultats Visuels : Cartes d'Attention Émergentes et Segmentation Spontanée
+
+Entraîné sur **STL-10** ($96 \times 96$, patch $8 \times 8$, $K = 1024$ prototypes), le modèle DINO converge de manière stable sans aucun effondrement représentationnel :
+- **Perte Cross-Entropy finale :** **`5.2597`** (descente continue depuis `6.7185`).
+- **Segmentation non supervisée :** Les têtes d'attention du `[CLS]` token isolent spontanément le premier plan (le fuselage d'avion, le pelage et la tête du chien, le corps de l'oiseau ou du cerf) du fond.
 
 Le script [`pytorch/visualize_attention.py`](./pytorch/visualize_attention.py) extrait les matrices d'attention du `[CLS]` token de la dernière couche du Vision Transformer et les projette sur les images d'origine :
 

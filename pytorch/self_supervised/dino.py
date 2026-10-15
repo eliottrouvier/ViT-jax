@@ -42,29 +42,45 @@ class DataAugmentationDINO:
     ):
         self.local_crops_number = local_crops_number
 
-        # Normalisation standard CIFAR / ImageNet
+        # Normalisation standard CIFAR / STL / ImageNet
         normalize = transforms.Normalize(
             mean=[0.4914, 0.4822, 0.4465], std=[0.2470, 0.2435, 0.2616]
         )
 
-        # 1. Première transformation globale (avec flip horizontal)
+        color_jitter = transforms.Compose([
+            transforms.RandomApply(
+                [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
+                p=0.8,
+            ),
+            transforms.RandomGrayscale(p=0.2),
+        ])
+
+        clamp = transforms.Lambda(lambda x: torch.clamp(x, 0.0, 1.0))
+
+        # 1. Première transformation globale (avec flip horizontal + color jitter)
         self.global_transfo1 = transforms.Compose([
             transforms.RandomResizedCrop(global_size, scale=global_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            clamp,
             transforms.RandomHorizontalFlip(p=0.5),
+            color_jitter,
             normalize,
         ])
 
         # 2. Deuxième transformation globale
         self.global_transfo2 = transforms.Compose([
             transforms.RandomResizedCrop(global_size, scale=global_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            clamp,
             transforms.RandomHorizontalFlip(p=0.5),
+            color_jitter,
             normalize,
         ])
 
         # 3. Transformations locales (petits zooms sur des détails)
         self.local_transfo = transforms.Compose([
             transforms.RandomResizedCrop(local_size, scale=local_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            clamp,
             transforms.RandomHorizontalFlip(p=0.5),
+            color_jitter,
             normalize,
         ])
 
@@ -269,15 +285,15 @@ class DINOModel(nn.Module):
 # Fonctions Fabriques (Factories)
 # -----------------------------------------------------------------------------
 
-def dino_vit_tiny(out_dim: int = 1024, img_size: int = 64) -> Tuple[DINOModel, DINOModel]:
+def dino_vit_tiny(out_dim: int = 1024, img_size: int = 64, patch_size: int = 16) -> Tuple[DINOModel, DINOModel]:
     """Instancie la paire Élève et Professeur ViT-Tiny pour DINO."""
     # 1. Élève (Student)
-    backbone_s = vit_tiny_patch16_224(img_size=img_size, num_classes=0)
+    backbone_s = vit_tiny_patch16_224(img_size=img_size, patch_size=patch_size, num_classes=0)
     head_s = DINOHead(in_dim=192, out_dim=out_dim, hidden_dim=512, bottleneck_dim=128)
     student = DINOModel(backbone_s, head_s)
 
     # 2. Professeur (Teacher) - Même architecture avec gradients gelés
-    backbone_t = vit_tiny_patch16_224(img_size=img_size, num_classes=0)
+    backbone_t = vit_tiny_patch16_224(img_size=img_size, patch_size=patch_size, num_classes=0)
     head_t = DINOHead(in_dim=192, out_dim=out_dim, hidden_dim=512, bottleneck_dim=128)
     teacher = DINOModel(backbone_t, head_t)
 
@@ -289,13 +305,13 @@ def dino_vit_tiny(out_dim: int = 1024, img_size: int = 64) -> Tuple[DINOModel, D
     return student, teacher
 
 
-def dino_vit_base(out_dim: int = 4096, img_size: int = 224) -> Tuple[DINOModel, DINOModel]:
+def dino_vit_base(out_dim: int = 4096, img_size: int = 224, patch_size: int = 16) -> Tuple[DINOModel, DINOModel]:
     """Instancie la paire Élève et Professeur ViT-B/16 canonique pour DINO."""
-    backbone_s = vit_base_patch16_224(img_size=img_size, num_classes=0)
+    backbone_s = vit_base_patch16_224(img_size=img_size, patch_size=patch_size, num_classes=0)
     head_s = DINOHead(in_dim=768, out_dim=out_dim, hidden_dim=2048, bottleneck_dim=256)
     student = DINOModel(backbone_s, head_s)
 
-    backbone_t = vit_base_patch16_224(img_size=img_size, num_classes=0)
+    backbone_t = vit_base_patch16_224(img_size=img_size, patch_size=patch_size, num_classes=0)
     head_t = DINOHead(in_dim=768, out_dim=out_dim, hidden_dim=2048, bottleneck_dim=256)
     teacher = DINOModel(backbone_t, head_t)
 
