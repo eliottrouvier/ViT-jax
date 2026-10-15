@@ -1,6 +1,6 @@
-# 👁️ ViT-JAX : Du Zéro au Héro en Vision Transformers & Auto-Supervision
+#  ViT-JAX : Vision Transformers & Auto-Supervision
 
-> **Un voyage d'apprentissage complet, pas à pas :** Comprendre et coder un **Vision Transformer (ViT-B/16)** de zéro en **PyTorch**, implémenter les deux algorithmes majeurs d'auto-supervision (**MAE** & **DINO**), puis effectuer la transition moderne vers **JAX / Flax**.
+>  ** Comprendre et coder un **Vision Transformer (ViT-B/16)** de zéro en **PyTorch**, implémenter les deux algorithmes majeurs d'auto-supervision (**MAE** & **DINO**), puis effectuer la transition moderne vers **JAX / Flax**.
 
 ---
 
